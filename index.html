@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.5.0/math.min.js"></script>
+    </head>
+    <body style="user-select: none;">
+        <canvas style="position: absolute; top: 0; left: 0; touch-action: none; cursor: crosshair;"></canvas>
+        <span style="position: absolute; left: 10px; bottom: 10px; font-size: 30px;" id="bl"></span>
+        <span style="position: absolute; left: 10px; top: 10px; font-size: 30px;" id="tl"></span>
+        <span style="position: absolute; right: 10px; bottom: 10px; font-size: 30px;" id="br"></span>
+        <span style="position: absolute; right: 10px; top: 10px; font-size: 30px;" id="tr"></span>
+        <span style="position: absolute; width: 99%; text-align: center; font-size: 30px;" id="mxmy"></span>
+
+        <script>
+            (()=>{
+                let cvs = document.querySelector('canvas');
+                let bl = document.getElementById('bl');
+                let tl = document.getElementById('tl');
+                let br = document.getElementById('br');
+                let tr = document.getElementById('tr');
+                let mxmy = document.getElementById('mxmy');
+                
+                let ctx = cvs.getContext('2d');
+                let size = [0, 0];
+
+                let dots = [
+                    [2, 2],
+                    [2, 3],
+                    [3, 2],
+                    [3, 3],
+                    [2, 5],
+                    [3, 5],
+                    [5, 2],
+                    [5, 3],
+                    [5, 5]
+                ];
+                
+                let range = { x: [], y: [] };
+                let xs = 0, ys = 0, zoom = 100;
+                let oxs = 0, oys = 0;
+                let deltax = 0, deltay = 0;
+                
+                let render = (cal, mx, my, rmx, rmy) => {
+                    if (cal) {
+                        range.x = [Math.floor(xs), Math.ceil(xs + size[0] / zoom)];
+                        range.y = [Math.floor(ys), Math.ceil(ys + size[1] / zoom)];
+                        bl.innerText = `(${range.x[0]},${range.y[0]})`;
+                        tl.innerText = `(${range.x[0]},${range.y[1]})`;
+                        br.innerText = `(${range.x[1]},${range.y[0]})`;
+                        tr.innerText = `(${range.x[1]},${range.y[1]})`;
+
+                        for (let i = range.x[0]; i <= range.x[1]; i++) {
+                            if (math.isPrime(i)) {
+                                for (let j = range.y[0]; j <= range.y[1]; j++) {
+                                    if (math.isPrime(j)) {
+                                        if (dots.indexOf([i, j]) == -1) {
+                                            dots.push([i, j]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    mxmy.innerText = `(${Math.round(mx)},${Math.round(my)})`;
+                    ctx.clearRect(0, 0, 99999, 99999);
+                    
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = '#bbbbbb';
+                    ctx.beginPath();
+                    ctx.moveTo(0, rmy);
+                    ctx.lineTo(size[0], rmy);
+                    ctx.moveTo(rmx, 0);
+                    ctx.lineTo(rmx, size[1]);
+                    ctx.stroke();
+                    
+                    ctx.lineWidth = zoom / 30;
+                    ctx.strokeStyle = 'blue';
+                    ctx.beginPath();
+                    let offs = 0;
+                    ctx.moveTo((0 - xs) * zoom, size[1] - (offs - ys) * zoom);
+                    ctx.lineTo((10000 - xs) * zoom, size[1] - (10000 + offs - ys) * zoom);
+                    offs = 2;
+                    ctx.moveTo((0 - xs) * zoom, size[1] - (offs - ys) * zoom);
+                    ctx.lineTo((10000 - xs) * zoom, size[1] - (10000 + offs - ys) * zoom);
+                    offs = 4;
+                    ctx.moveTo((0 - xs) * zoom, size[1] - (offs - ys) * zoom);
+                    ctx.lineTo((10000 - xs) * zoom, size[1] - (10000 + offs - ys) * zoom);
+                    offs = 8;
+                    ctx.moveTo((0 - xs) * zoom, size[1] - (offs - ys) * zoom);
+                    ctx.lineTo((10000 - xs) * zoom, size[1] - (10000 + offs - ys) * zoom);
+                    offs = 6;
+                    ctx.moveTo((0 - xs) * zoom, size[1] - (offs - ys) * zoom);
+                    ctx.lineTo((10000 - xs) * zoom, size[1] - (10000 + offs - ys) * zoom);
+                    offs = 10;
+                    ctx.moveTo((0 - xs) * zoom, size[1] - (offs - ys) * zoom);
+                    ctx.lineTo((10000 - xs) * zoom, size[1] - (10000 + offs - ys) * zoom);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'green';
+                    for (const pos of dots) {
+                        if (pos[1] == pos[0] + 2) {
+                            ctx.fillStyle = 'red';
+                        }
+                        let rx = zoom * (pos[0] - xs);
+                        let ry = size[1] - zoom * (pos[1] - ys);                        
+                        ctx.beginPath();
+                        ctx.arc(rx, ry, zoom/15 + (pos[1] == pos[0] + 2) * 5 , 0, 6.28);
+                        ctx.fill();
+                        if (pos[1] == pos[0] + 2) {
+                            ctx.fillStyle = 'green';
+                        }
+                    }
+                };
+                
+                let mousedown = false;
+
+                cvs.onpointerdown = e => {
+                    deltax = e.pageX;
+                    deltay = e.pageY;
+                    oxs = xs;
+                    oys = ys;
+                    mousedown = true;
+                };
+                cvs.onpointerup = e => {
+                    mousedown = false;
+                };
+                cvs.onpointermove = e => {
+                    let mousex = e.pageX / zoom + xs;
+                    let mousey = (size[1] - e.pageY) / zoom + ys;
+                    if (mousedown) {
+                        xs = oxs + (deltax - e.pageX) / zoom;
+                        ys = oys + (e.pageY - deltay) / zoom;
+                        if (xs < 0) {
+                            xs = 0
+                        }
+                        if (ys < 0) {
+                            ys = 0
+                        }
+                        render(true, mousex, mousey, e.pageX, e.pageY);
+                    }
+                    else {
+                        render(false, mousex, mousey, e.pageX, e.pageY);
+                    }
+                };
+                window.onwheel = e => {
+                    let mousex = e.pageX / zoom + xs;
+                    let mousey = (size[1] - e.pageY) / zoom + ys;
+                    let t = zoom;
+                    zoom += e.deltaY / 10;
+                    if (zoom < 10) {
+                        zoom = 10;
+                    }
+                    if (zoom > 200) {
+                        zoom = 200;
+                    }
+                    let center = [xs + e.pageX / zoom, ys + (size[1] - e.pageY) / zoom];
+                    xs = center[0] + (xs - center[0]) / (zoom / t);
+                    ys = center[1] + (ys - center[1]) / (zoom / t);
+                    if (xs < 0) {
+                        xs = 0
+                    }
+                    if (ys < 0) {
+                        ys = 0
+                    }
+                    render(true, mousex, mousey, e.pageX, e.pageY);
+                };
+                cvs.oncontextmenu = e => {
+                    return false;
+                };
+                window.onload = window.onresize = () => {
+                    size[0] = cvs.width = window.innerWidth;
+                    size[1] = cvs.height = window.innerHeight;
+                    ctx = cvs.getContext('2d');
+                    render(true, 0, 0, 0, 0);
+                };
+            })();
+        </script>
+    </body>
+</html>
